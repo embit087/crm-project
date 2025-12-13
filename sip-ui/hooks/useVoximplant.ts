@@ -24,6 +24,7 @@ export const useVoximplant = () => {
   const [currentCall, setCurrentCall] = useState<CurrentCall | null>(null);
   const [pendingCallRequest, setPendingCallRequest] = useState<PendingCallRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [micPermissionGranted, setMicPermissionGranted] = useState<boolean | null>(null);
 
   const clientRef = useRef<any>(null);
   const callRef = useRef<any>(null);
@@ -63,6 +64,45 @@ export const useVoximplant = () => {
     loadSDK();
   }, []);
 
+  // Request microphone permissions
+  const requestMicrophonePermission = useCallback(async (): Promise<boolean> => {
+    try {
+      // Check if permissions API is available
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        if (result.state === 'granted') {
+          setMicPermissionGranted(true);
+          return true;
+        }
+        if (result.state === 'denied') {
+          setMicPermissionGranted(false);
+          setError('Microphone permission denied. Please enable it in your browser settings.');
+          return false;
+        }
+      }
+
+      // Request permission by trying to access media
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately
+        setMicPermissionGranted(true);
+        return true;
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setMicPermissionGranted(false);
+          setError('Microphone permission denied. Please allow microphone access to make calls.');
+          return false;
+        }
+        throw err;
+      }
+    } catch (error) {
+      console.error('Failed to request microphone permission:', error);
+      // Don't fail initialization, just log the error
+      // Permission will be requested when making a call
+      return false;
+    }
+  }, []);
+
   // Initialize Voximplant client
   useEffect(() => {
     if (!isSDKLoaded || !window.VoxImplant) return;
@@ -80,16 +120,45 @@ export const useVoximplant = () => {
         client.on(window.VoxImplant.Events.AuthResult, handleAuthResult);
         client.on(window.VoxImplant.Events.IncomingCall, handleIncomingCall);
 
-        // Initialize SDK
+        // Request microphone permission before initialization
+        const hasPermission = await requestMicrophonePermission();
+
+        // Initialize SDK with micRequired based on permission status
+        // Setting micRequired to false initially to avoid immediate permission request
+        // Permission will be requested when making/answering calls
         await client.init({
-          micRequired: true,
+          micRequired: false, // Changed to false to avoid immediate permission request
           videoSupport: false,
           progressTone: true,
           progressToneCountry: 'US',
         });
-      } catch (error) {
+
+        // Set up media access error handler (if StreamManager is available)
+        try {
+          if (window.VoxImplant.StreamManager) {
+            const streamManager = window.VoxImplant.StreamManager.getInstance();
+            if (streamManager) {
+              streamManager.on(window.VoxImplant.StreamManagerEvents.MediaAccessError, (e: any) => {
+                console.error('Media access error:', e);
+                if (e && (e.error?.message?.includes('Permission denied') || e.message?.includes('Permission denied'))) {
+                  setError('Microphone permission denied. Please allow microphone access in your browser settings.');
+                  setMicPermissionGranted(false);
+                }
+              });
+            }
+          }
+        } catch (streamError) {
+          // StreamManager might not be available or accessible, ignore
+          console.warn('Could not set up StreamManager error handler:', streamError);
+        }
+      } catch (error: any) {
         console.error('Failed to initialize Voximplant client:', error);
-        setError('Failed to initialize calling service');
+        if (error.message && error.message.includes('Permission denied')) {
+          setError('Microphone permission denied. Please allow microphone access to use calling features.');
+          setMicPermissionGranted(false);
+        } else {
+          setError('Failed to initialize calling service');
+        }
       }
     };
 
@@ -100,7 +169,7 @@ export const useVoximplant = () => {
         clientRef.current.disconnect();
       }
     };
-  }, [isSDKLoaded]);
+  }, [isSDKLoaded, requestMicrophonePermission]);
 
   // Handle pending call requests
   useEffect(() => {
@@ -206,6 +275,15 @@ export const useVoximplant = () => {
     call.on(window.VoxImplant.CallEvents.ProgressToneStart, handleProgressToneStart);
     call.on(window.VoxImplant.CallEvents.ProgressToneStop, handleProgressToneStop);
     call.on(window.VoxImplant.CallEvents.MediaElementCreated, handleMediaElementCreated);
+    
+    // Handle media access errors on the call object
+    call.on(window.VoxImplant.CallEvents.Error, (e: any) => {
+      console.error('Call error:', e);
+      if (e && (e.error?.message?.includes('Permission denied') || e.message?.includes('Permission denied'))) {
+        setError('Microphone permission denied. Please allow microphone access to use calling features.');
+        setMicPermissionGranted(false);
+      }
+    });
   }, []);
 
   const handleCallConnected = useCallback(() => {
@@ -314,6 +392,15 @@ export const useVoximplant = () => {
       return;
     }
 
+    // Request microphone permission before making call
+    if (micPermissionGranted === false) {
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        setError('Microphone permission is required to make calls. Please allow microphone access.');
+        return;
+      }
+    }
+
     try {
       const cleanNumber = phoneNumber.replace(/\D/g, '');
 
@@ -359,11 +446,16 @@ export const useVoximplant = () => {
       });
 
       setError(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to initiate call:', error);
-      setError('Failed to start call');
+      if (error.message && error.message.includes('Permission denied')) {
+        setError('Microphone permission denied. Please allow microphone access to make calls.');
+        setMicPermissionGranted(false);
+      } else {
+        setError('Failed to start call');
+      }
     }
-  }, [isAuthenticated, isRecording, setupCallEventHandlers]);
+  }, [isAuthenticated, isRecording, setupCallEventHandlers, micPermissionGranted, requestMicrophonePermission]);
 
   const endCall = useCallback(() => {
     if (callRef.current) {
@@ -371,12 +463,31 @@ export const useVoximplant = () => {
     }
   }, []);
 
-  const answerCall = useCallback(() => {
+  const answerCall = useCallback(async () => {
     if (callRef.current && callStatus === 'incoming') {
-      callRef.current.answer();
-      stopRingtone();
+      // Request microphone permission before answering call
+      if (micPermissionGranted === false) {
+        const hasPermission = await requestMicrophonePermission();
+        if (!hasPermission) {
+          setError('Microphone permission is required to answer calls. Please allow microphone access.');
+          return;
+        }
+      }
+
+      try {
+        callRef.current.answer();
+        stopRingtone();
+      } catch (error: any) {
+        console.error('Failed to answer call:', error);
+        if (error.message && error.message.includes('Permission denied')) {
+          setError('Microphone permission denied. Please allow microphone access to answer calls.');
+          setMicPermissionGranted(false);
+        } else {
+          setError('Failed to answer call');
+        }
+      }
     }
-  }, [callStatus]);
+  }, [callStatus, micPermissionGranted, requestMicrophonePermission]);
 
   const rejectCall = useCallback(() => {
     if (callRef.current && callStatus === 'incoming') {
@@ -497,6 +608,8 @@ export const useVoximplant = () => {
     currentCall,
     pendingCallRequest,
     error,
+    micPermissionGranted,
+    requestMicrophonePermission,
     initiateCall,
     endCall,
     answerCall,

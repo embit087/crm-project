@@ -1,7 +1,0 @@
-[submodule "twenty-four"]
-	path = twenty-four
-	url = .
-[submodule "twenty-four-worker"]
-	path = twenty-four-worker
-	url = .
-

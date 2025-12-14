@@ -83,3 +83,4 @@ export type NoteTab = "note" | "timeline" | "files";
 export type TasksView = "all" | "by_status" | "assigned_to_me";
 export type ActiveNav = "people" | "companies" | "opportunities" | "tasks" | "notes" | "workflows";
 
+

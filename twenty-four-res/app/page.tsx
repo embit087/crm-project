@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { SearchPanel } from "@/components/overlays/SearchPanel";
-import { CallFab } from "@/components/ui/CallFab";
+import { CallFab, CallPanel } from "@/components/ui";
 import { PeopleView } from "@/components/views/PeopleView";
 import { CompaniesView } from "@/components/views/CompaniesView";
 import { NotesView } from "@/components/views/NotesView";
@@ -34,6 +34,7 @@ export default function Home() {
   
   // UI state
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [showCallPanel, setShowCallPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Row selection handlers
@@ -317,7 +318,12 @@ export default function Home() {
         onNavigate={handleNavChange}
       />
 
-      <CallFab />
+      <CallFab onClick={() => setShowCallPanel(true)} />
+      <CallPanel
+        isOpen={showCallPanel}
+        onClose={() => setShowCallPanel(false)}
+        contacts={people}
+      />
     </div>
   );
 }

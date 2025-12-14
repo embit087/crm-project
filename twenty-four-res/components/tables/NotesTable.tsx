@@ -2,7 +2,7 @@
 
 import { FileTextIcon, UsersIcon, CalendarIcon, PlusIcon, ChevronDownIcon } from "@/components/icons";
 import { CreatedByAvatar } from "@/components/ui/Avatar";
-import { useColumnResize } from "@/hooks";
+import { useColumnResize, useColumnReorder } from "@/hooks";
 import type { Note } from "@/types";
 
 const notesColumns = [
@@ -30,34 +30,67 @@ export function NotesTable({
   onAddNote,
 }: NotesTableProps) {
   const { columnWidths, handleColumnResizeStart } = useColumnResize();
+  const {
+    columns: orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useColumnReorder(notesColumns, "notes-column-order");
 
   return (
     <div className="flex-1 overflow-auto table-container">
       <table className="crm-table">
         <thead>
           <tr>
-            {notesColumns.map((col) => (
-              <th key={col.key} style={{ width: columnWidths[col.key] }}>
-                <div className="flex items-center gap-1.5">
-                  {col.icon}
-                  {col.label && <span>{col.label}</span>}
-                  {col.key === "checkbox" && (
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={selectedRows.size === notes.length && notes.length > 0}
-                      onChange={onToggleAll}
+            {orderedColumns.map((col, index) => {
+              const isDragging = draggedColumn === col.key;
+              const isDragOver = dragOverColumn === col.key;
+              const isDragOverRight = dragOverColumn && orderedColumns.findIndex((c) => c.key === dragOverColumn) === index - 1;
+              
+              return (
+                <th
+                  key={col.key}
+                  style={{ width: `${columnWidths[col.key]}px` }}
+                  draggable={col.key !== "checkbox"}
+                  onDragStart={(e) => col.key !== "checkbox" && handleDragStart(e, col.key)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => col.key !== "checkbox" && handleDragOver(e, col.key)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => col.key !== "checkbox" && handleDrop(e, col.key)}
+                  className={
+                    col.key !== "checkbox"
+                      ? `column-header-draggable ${isDragging ? "dragging" : ""} ${isDragOver ? "drag-over" : ""} ${isDragOverRight ? "drag-over-right" : ""}`
+                      : ""
+                  }
+                >
+                  <div className="flex items-center gap-1.5">
+                    {col.icon}
+                    {col.label && <span>{col.label}</span>}
+                    {col.key === "checkbox" && (
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedRows.size === notes.length && notes.length > 0}
+                        onChange={onToggleAll}
+                      />
+                    )}
+                  </div>
+                  {col.key !== "checkbox" && (
+                    <div
+                      className="resize-handle"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        handleColumnResizeStart(e, col.key);
+                      }}
                     />
                   )}
-                </div>
-                {col.key !== "checkbox" && (
-                  <div
-                    className="resize-handle"
-                    onMouseDown={(e) => handleColumnResizeStart(e, col.key)}
-                  />
-                )}
-              </th>
-            ))}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -67,34 +100,53 @@ export function NotesTable({
               className={`animate-fade-in animate-delay-${Math.min(index + 1, 5)}`}
               style={{ opacity: 0 }}
             >
-              <td style={{ width: columnWidths.checkbox }}>
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={selectedRows.has(note.id)}
-                  onChange={() => onToggleRow(note.id)}
-                />
-              </td>
-              <td style={{ width: columnWidths.title }}>
-                <div
-                  className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => onSelectNote(note)}
-                >
-                  <div className="avatar-large mr-3">📝</div>
-                  <span className={note.title === "Untitled" ? "text-text-muted" : "text-text-primary"}>
-                    {note.title}
-                  </span>
-                </div>
-              </td>
-              <td style={{ width: columnWidths.createdBy }}>
-                <div className="flex items-center gap-2">
-                  <CreatedByAvatar name={note.createdBy.name} type={note.createdBy.type} />
-                  <span className="text-text-secondary">{note.createdBy.name}</span>
-                </div>
-              </td>
-              <td style={{ width: columnWidths.creationDate }} className="text-text-secondary">
-                {note.creationDate}
-              </td>
+              {orderedColumns.map((col) => {
+                if (col.key === "checkbox") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.checkbox}px` }}>
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedRows.has(note.id)}
+                        onChange={() => onToggleRow(note.id)}
+                      />
+                    </td>
+                  );
+                }
+                if (col.key === "title") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.title}px` }}>
+                      <div
+                        className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => onSelectNote(note)}
+                      >
+                        <div className="avatar-large mr-3">📝</div>
+                        <span className={note.title === "Untitled" ? "text-text-muted" : "text-text-primary"}>
+                          {note.title}
+                        </span>
+                      </div>
+                    </td>
+                  );
+                }
+                if (col.key === "createdBy") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.createdBy}px` }}>
+                      <div className="flex items-center gap-2">
+                        <CreatedByAvatar name={note.createdBy.name} type={note.createdBy.type} />
+                        <span className="text-text-secondary">{note.createdBy.name}</span>
+                      </div>
+                    </td>
+                  );
+                }
+                if (col.key === "creationDate") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.creationDate}px` }} className="text-text-secondary">
+                      {note.creationDate}
+                    </td>
+                  );
+                }
+                return null;
+              })}
             </tr>
           ))}
           {/* Add new row */}
@@ -127,4 +179,5 @@ export function NotesTable({
     </div>
   );
 }
+
 

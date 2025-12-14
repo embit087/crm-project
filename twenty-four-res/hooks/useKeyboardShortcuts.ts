@@ -49,3 +49,4 @@ export function useKeyboardShortcuts({
   }, [onSearch, onEscape, onNewRecord, isSearchOpen]);
 }
 
+

@@ -18,3 +18,4 @@ curl -X POST "https://api.voximplant.com/platform_api/StartScenarios?account_id=
 echo ""
 echo "If you see 'result: 1' and a call_session_history_id, the call was initiated successfully!"
 
+

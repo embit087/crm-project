@@ -125,3 +125,4 @@ export function CompanySidebar({ company, people, onClose, onSelectPerson }: Com
   );
 }
 
+

@@ -64,3 +64,4 @@ echo "2. Use a rule_id from Test 3 to make a call"
 echo "3. Or use the Web SDK (which is what the app uses)"
 echo "=========================================="
 
+

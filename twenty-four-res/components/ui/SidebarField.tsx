@@ -36,3 +36,4 @@ export function PropertyRow({ icon, label, children }: PropertyRowProps) {
   );
 }
 
+

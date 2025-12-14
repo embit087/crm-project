@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BuildingIcon, GlobeIcon, UsersIcon, CalendarIcon, HashIcon, PlusIcon, ChevronDownIcon } from "@/components/icons";
 import { CreatedByAvatar, CompanyIcon } from "@/components/ui/Avatar";
-import { useColumnResize } from "@/hooks";
+import { useColumnResize, useColumnReorder } from "@/hooks";
 import type { Company } from "@/types";
 
 const companyColumns = [
@@ -34,6 +34,16 @@ export function CompaniesTable({
   onDomainChange,
 }: CompaniesTableProps) {
   const { columnWidths, handleColumnResizeStart } = useColumnResize();
+  const {
+    columns: orderedColumns,
+    draggedColumn,
+    dragOverColumn,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useColumnReorder(companyColumns, "companies-column-order");
   const [editingDomain, setEditingDomain] = useState<string | null>(null);
 
   return (
@@ -41,28 +51,51 @@ export function CompaniesTable({
       <table className="crm-table">
         <thead>
           <tr>
-            {companyColumns.map((col) => (
-              <th key={col.key} style={{ width: columnWidths[col.key] }}>
-                <div className="flex items-center gap-1.5">
-                  {col.icon}
-                  {col.label && <span>{col.label}</span>}
-                  {col.key === "checkbox" && (
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={selectedRows.size === companies.length && companies.length > 0}
-                      onChange={onToggleAll}
+            {orderedColumns.map((col, index) => {
+              const isDragging = draggedColumn === col.key;
+              const isDragOver = dragOverColumn === col.key;
+              const isDragOverRight = dragOverColumn && orderedColumns.findIndex((c) => c.key === dragOverColumn) === index - 1;
+              
+              return (
+                <th
+                  key={col.key}
+                  style={{ width: `${columnWidths[col.key]}px` }}
+                  draggable={col.key !== "checkbox"}
+                  onDragStart={(e) => col.key !== "checkbox" && handleDragStart(e, col.key)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => col.key !== "checkbox" && handleDragOver(e, col.key)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => col.key !== "checkbox" && handleDrop(e, col.key)}
+                  className={
+                    col.key !== "checkbox"
+                      ? `column-header-draggable ${isDragging ? "dragging" : ""} ${isDragOver ? "drag-over" : ""} ${isDragOverRight ? "drag-over-right" : ""}`
+                      : ""
+                  }
+                >
+                  <div className="flex items-center gap-1.5">
+                    {col.icon}
+                    {col.label && <span>{col.label}</span>}
+                    {col.key === "checkbox" && (
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedRows.size === companies.length && companies.length > 0}
+                        onChange={onToggleAll}
+                      />
+                    )}
+                  </div>
+                  {col.key !== "checkbox" && (
+                    <div
+                      className="resize-handle"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        handleColumnResizeStart(e, col.key);
+                      }}
                     />
                   )}
-                </div>
-                {col.key !== "checkbox" && (
-                  <div
-                    className="resize-handle"
-                    onMouseDown={(e) => handleColumnResizeStart(e, col.key)}
-                  />
-                )}
-              </th>
-            ))}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -72,69 +105,100 @@ export function CompaniesTable({
               className={`animate-fade-in animate-delay-${Math.min(index + 1, 5)}`}
               style={{ opacity: 0 }}
             >
-              <td style={{ width: columnWidths.checkbox }}>
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={selectedRows.has(company.id)}
-                  onChange={() => onToggleRow(company.id)}
-                />
-              </td>
-              <td style={{ width: columnWidths.name }}>
-                <div
-                  className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => onSelectCompany(company)}
-                >
-                  <CompanyIcon name={company.name} />
-                  <span className={company.name === "Untitled" ? "text-text-muted" : "text-text-primary"}>
-                    {company.name}
-                  </span>
-                </div>
-              </td>
-              <td style={{ width: columnWidths.domain }}>
-                {editingDomain === company.id ? (
-                  <input
-                    type="text"
-                    className="editable-input"
-                    value={company.domain}
-                    onChange={(e) => onDomainChange(company.id, e.target.value)}
-                    onBlur={() => setEditingDomain(null)}
-                    onKeyDown={(e) => e.key === "Enter" && setEditingDomain(null)}
-                    autoFocus
-                  />
-                ) : company.domain ? (
-                  <span
-                    className="domain-tag clickable"
-                    onClick={() => setEditingDomain(company.id)}
-                  >
-                    {company.domain}
-                  </span>
-                ) : (
-                  <span
-                    className="text-text-muted cursor-pointer hover:text-text-secondary"
-                    onClick={() => setEditingDomain(company.id)}
-                  >
-                    Domain
-                  </span>
-                )}
-              </td>
-              <td style={{ width: columnWidths.createdBy }}>
-                <div className="flex items-center gap-2">
-                  <CreatedByAvatar name={company.createdBy.name} type={company.createdBy.type} />
-                  <span className="text-text-secondary">{company.createdBy.name}</span>
-                </div>
-              </td>
-              <td style={{ width: columnWidths.accountOwner }} className="text-text-muted">
-                {typeof company.accountOwner === "string"
-                  ? company.accountOwner || "Account Owner"
-                  : company.accountOwner.name}
-              </td>
-              <td style={{ width: columnWidths.creationDate }} className="text-text-secondary">
-                {company.creationDate}
-              </td>
-              <td style={{ width: columnWidths.employees }} className="text-text-secondary">
-                {company.employees || ""}
-              </td>
+              {orderedColumns.map((col) => {
+                if (col.key === "checkbox") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.checkbox}px` }}>
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedRows.has(company.id)}
+                        onChange={() => onToggleRow(company.id)}
+                      />
+                    </td>
+                  );
+                }
+                if (col.key === "name") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.name}px` }}>
+                      <div
+                        className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => onSelectCompany(company)}
+                      >
+                        <CompanyIcon name={company.name} />
+                        <span className={company.name === "Untitled" ? "text-text-muted" : "text-text-primary"}>
+                          {company.name}
+                        </span>
+                      </div>
+                    </td>
+                  );
+                }
+                if (col.key === "domain") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.domain}px` }}>
+                      {editingDomain === company.id ? (
+                        <input
+                          type="text"
+                          className="editable-input"
+                          value={company.domain}
+                          onChange={(e) => onDomainChange(company.id, e.target.value)}
+                          onBlur={() => setEditingDomain(null)}
+                          onKeyDown={(e) => e.key === "Enter" && setEditingDomain(null)}
+                          autoFocus
+                        />
+                      ) : company.domain ? (
+                        <span
+                          className="domain-tag clickable"
+                          onClick={() => setEditingDomain(company.id)}
+                        >
+                          {company.domain}
+                        </span>
+                      ) : (
+                        <span
+                          className="text-text-muted cursor-pointer hover:text-text-secondary"
+                          onClick={() => setEditingDomain(company.id)}
+                        >
+                          Domain
+                        </span>
+                      )}
+                    </td>
+                  );
+                }
+                if (col.key === "createdBy") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.createdBy}px` }}>
+                      <div className="flex items-center gap-2">
+                        <CreatedByAvatar name={company.createdBy.name} type={company.createdBy.type} />
+                        <span className="text-text-secondary">{company.createdBy.name}</span>
+                      </div>
+                    </td>
+                  );
+                }
+                if (col.key === "accountOwner") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.accountOwner}px` }} className="text-text-muted">
+                      {typeof company.accountOwner === "string"
+                        ? company.accountOwner || "Account Owner"
+                        : company.accountOwner.name}
+                    </td>
+                  );
+                }
+                if (col.key === "creationDate") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.creationDate}px` }} className="text-text-secondary">
+                      {company.creationDate}
+                    </td>
+                  );
+                }
+                if (col.key === "employees") {
+                  return (
+                    <td key={col.key} style={{ width: `${columnWidths.employees}px` }} className="text-text-secondary">
+                      {company.employees || ""}
+                    </td>
+                  );
+                }
+                return null;
+              })}
             </tr>
           ))}
           {/* Add new row */}
@@ -164,4 +228,5 @@ export function CompaniesTable({
     </div>
   );
 }
+
 

@@ -94,3 +94,4 @@ export function NoteDetailView({ note, onTitleChange, onContentChange }: NoteDet
   );
 }
 
+

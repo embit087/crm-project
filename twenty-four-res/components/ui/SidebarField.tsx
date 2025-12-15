@@ -13,7 +13,7 @@ export function SidebarField({ icon, label, children }: SidebarFieldProps) {
         {icon}
         <span className="min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{label}</span>
       </div>
-      <div className="min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{children}</div>
+      <div className="sidebar-field-value">{children}</div>
     </div>
   );
 }

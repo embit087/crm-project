@@ -10,6 +10,7 @@ import {
   XIcon,
 } from "@/components/icons";
 import { TasksTable, TasksKanban } from "@/components/tables";
+import { TaskDetailView } from "@/components/sidebars/TaskDetailView";
 import type { Task, TaskStatus, TasksView as TasksViewType } from "@/types";
 
 interface ViewTab {
@@ -30,6 +31,9 @@ interface TasksViewProps {
   currentUser: string;
   activeView?: TasksViewType;
   onViewChange?: (view: TasksViewType) => void;
+  selectedTask?: Task | null;
+  onSelectTask?: (task: Task | null) => void;
+  onFieldUpdate?: (taskId: string, field: keyof Task, value: any) => void;
 }
 
 export function TasksView({ 
@@ -37,7 +41,10 @@ export function TasksView({
   onUpdateTasks, 
   currentUser,
   activeView: externalActiveView,
-  onViewChange
+  onViewChange,
+  selectedTask: externalSelectedTask,
+  onSelectTask: externalOnSelectTask,
+  onFieldUpdate: externalOnFieldUpdate,
 }: TasksViewProps) {
   const [internalActiveView, setInternalActiveView] = useState<TasksViewType>("all");
   const activeView = externalActiveView ?? internalActiveView;
@@ -50,7 +57,10 @@ export function TasksView({
     }
   };
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [internalSelectedTask, setInternalSelectedTask] = useState<Task | null>(null);
+  
+  const selectedTask = externalSelectedTask ?? internalSelectedTask;
+  const handleSelectTask = externalOnSelectTask ?? setInternalSelectedTask;
 
   const filteredTasks = useMemo(() => {
     if (activeView === "assigned_to_me") {
@@ -93,8 +103,23 @@ export function TasksView({
     onUpdateTasks([newTask, ...tasks]);
   };
 
-  const handleSelectTask = (task: Task) => {
-    setSelectedTask(task);
+  const handleSelectTaskInternal = (task: Task) => {
+    handleSelectTask(task);
+  };
+  
+  const handleFieldUpdate = (taskId: string, field: keyof Task, value: any) => {
+    if (externalOnFieldUpdate) {
+      externalOnFieldUpdate(taskId, field, value);
+    } else {
+      const updatedTasks = tasks.map(t => 
+        t.id === taskId ? { ...t, [field]: value } : t
+      );
+      onUpdateTasks(updatedTasks);
+      // Update selected task if it's the one being edited
+      if (selectedTask?.id === taskId) {
+        handleSelectTask({ ...selectedTask, [field]: value });
+      }
+    }
   };
 
   const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
@@ -156,23 +181,32 @@ export function TasksView({
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden">
-        {activeView === "by_status" ? (
-          <TasksKanban
-            tasks={filteredTasks}
-            onSelectTask={handleSelectTask}
-            onAddTask={handleAddTask}
-            onUpdateTaskStatus={handleUpdateTaskStatus}
-          />
-        ) : (
-          <TasksTable
-            tasks={filteredTasks}
-            selectedRows={selectedRows}
-            onToggleRow={handleToggleRow}
-            onToggleAll={handleToggleAll}
-            onSelectTask={handleSelectTask}
-            onAddTask={() => handleAddTask()}
-            groupByStatus={activeView === "assigned_to_me"}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          {activeView === "by_status" ? (
+            <TasksKanban
+              tasks={filteredTasks}
+              onSelectTask={handleSelectTaskInternal}
+              onAddTask={handleAddTask}
+              onUpdateTaskStatus={handleUpdateTaskStatus}
+            />
+          ) : (
+            <TasksTable
+              tasks={filteredTasks}
+              selectedRows={selectedRows}
+              onToggleRow={handleToggleRow}
+              onToggleAll={handleToggleAll}
+              onSelectTask={handleSelectTaskInternal}
+              onAddTask={() => handleAddTask()}
+              groupByStatus={activeView === "assigned_to_me"}
+            />
+          )}
+        </div>
+        {selectedTask && (
+          <TaskDetailView
+            task={selectedTask}
+            onClose={() => handleSelectTask(null)}
+            onFieldUpdate={handleFieldUpdate}
           />
         )}
       </div>

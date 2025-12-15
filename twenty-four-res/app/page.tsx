@@ -30,6 +30,7 @@ export default function Home() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [favoriteNotes, setFavoriteNotes] = useState<Set<string>>(new Set());
   const [personFocusField, setPersonFocusField] = useState<keyof Person | undefined>(undefined);
   
@@ -162,12 +163,23 @@ export default function Home() {
     setSelectedRows(new Set());
   }, [activeNav, selectedRows, selectedPerson, selectedCompany, selectedNote]);
 
+  // Task update handler
+  const updateTaskField = useCallback((taskId: string, field: keyof Task, value: any) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, [field]: value } : t))
+    );
+    setSelectedTask((prev) =>
+      prev?.id === taskId ? { ...prev, [field]: value } : prev
+    );
+  }, []);
+
   // Navigation handler
   const handleNavChange = useCallback((nav: ActiveNav) => {
     setActiveNav(nav);
     setSelectedNote(null);
     setSelectedPerson(null);
     setSelectedCompany(null);
+    setSelectedTask(null);
     setSelectedRows(new Set());
   }, []);
 
@@ -293,6 +305,9 @@ export default function Home() {
             currentUser="Jimmy Wu"
             activeView={activeTasksView}
             onViewChange={handleTasksViewChange}
+            selectedTask={selectedTask}
+            onSelectTask={setSelectedTask}
+            onFieldUpdate={updateTaskField}
           />
         );
       default:

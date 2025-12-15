@@ -1,6 +1,6 @@
 "use client";
 
-import { XIcon, SearchIcon } from "@/components/icons";
+import { XIcon, SearchIcon, NotesIcon } from "@/components/icons";
 import { CompanyIcon, CreatedByAvatar } from "@/components/ui/Avatar";
 import type { Person, Company, Note, ActiveNav } from "@/types";
 
@@ -127,7 +127,9 @@ export function SearchPanel({
                         onClose();
                       }}
                     >
-                      <div className="search-result-icon search-result-icon-note">📝</div>
+                      <div className="search-result-icon search-result-icon-note">
+                        <NotesIcon />
+                      </div>
                       <div>
                         <div className="search-result-name">{note.title}</div>
                         <div className="search-result-type">Note</div>

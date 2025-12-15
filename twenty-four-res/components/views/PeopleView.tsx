@@ -13,6 +13,10 @@ interface PeopleViewProps {
   onToggleAll: () => void;
   onSelectPerson: (person: Person | null) => void;
   onFieldUpdate: (personId: string, field: keyof Person, value: string) => void;
+  onPhoneClick?: (phoneNumber: string, person: Person) => void;
+  onPhoneEdit?: (person: Person) => void;
+  personFocusField?: keyof Person;
+  onFocusFieldCleared?: () => void;
 }
 
 export function PeopleView({
@@ -23,6 +27,10 @@ export function PeopleView({
   onToggleAll,
   onSelectPerson,
   onFieldUpdate,
+  onPhoneClick,
+  onPhoneEdit,
+  personFocusField,
+  onFocusFieldCleared,
 }: PeopleViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -34,12 +42,19 @@ export function PeopleView({
           onToggleRow={onToggleRow}
           onToggleAll={onToggleAll}
           onSelectPerson={onSelectPerson}
+          onPhoneClick={onPhoneClick}
+          onPhoneEdit={onPhoneEdit}
         />
         {selectedPerson && (
           <PersonSidebar
             person={selectedPerson}
-            onClose={() => onSelectPerson(null)}
+            onClose={() => {
+              onSelectPerson(null);
+              onFocusFieldCleared?.();
+            }}
             onFieldUpdate={onFieldUpdate}
+            focusField={personFocusField}
+            onFocusComplete={onFocusFieldCleared}
           />
         )}
       </div>

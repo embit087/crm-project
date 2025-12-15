@@ -1,6 +1,6 @@
 "use client";
 
-import { FileTextIcon, UsersIcon, CalendarIcon, PlusIcon, ChevronDownIcon } from "@/components/icons";
+import { FileTextIcon, UsersIcon, CalendarIcon, PlusIcon, ChevronDownIcon, NotesIcon } from "@/components/icons";
 import { CreatedByAvatar } from "@/components/ui/Avatar";
 import { useColumnResize, useColumnReorder } from "@/hooks";
 import type { Note } from "@/types";
@@ -120,7 +120,9 @@ export function NotesTable({
                         className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => onSelectNote(note)}
                       >
-                        <div className="avatar-large mr-3">📝</div>
+                        <div className="avatar-large mr-3">
+                          <NotesIcon />
+                        </div>
                         <span className={note.title === "Untitled" ? "text-text-muted" : "text-text-primary"}>
                           {note.title}
                         </span>

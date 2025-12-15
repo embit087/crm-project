@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { UsersIcon, MailIcon, BuildingIcon, PhoneIcon, PlusIcon, ChevronDownIcon } from "@/components/icons";
 import { CreatedByAvatar, CompanyIcon } from "@/components/ui/Avatar";
+import { PhoneNumberDropdown } from "@/components/ui/PhoneNumberDropdown";
 import { useColumnResize, useColumnReorder } from "@/hooks";
 import type { Person } from "@/types";
 
@@ -20,6 +22,8 @@ interface PeopleTableProps {
   onToggleRow: (id: string) => void;
   onToggleAll: () => void;
   onSelectPerson: (person: Person) => void;
+  onPhoneClick?: (phoneNumber: string, person: Person) => void;
+  onPhoneEdit?: (person: Person) => void;
 }
 
 export function PeopleTable({
@@ -28,8 +32,11 @@ export function PeopleTable({
   onToggleRow,
   onToggleAll,
   onSelectPerson,
+  onPhoneClick,
+  onPhoneEdit,
 }: PeopleTableProps) {
   const { columnWidths, handleColumnResizeStart } = useColumnResize();
+  const [openDropdown, setOpenDropdown] = useState<{ personId: string; position: { x: number; y: number } } | null>(null);
   const {
     columns: orderedColumns,
     draggedColumn,
@@ -163,7 +170,23 @@ export function PeopleTable({
                 }
                 if (col.key === "phones") {
                   return (
-                    <td key={col.key} style={{ width: `${columnWidths.phones}px` }} className="text-text-secondary">
+                    <td 
+                      key={col.key} 
+                      style={{ width: `${columnWidths.phones}px` }} 
+                      className={`text-text-secondary ${person.phones && (onPhoneClick || onPhoneEdit) ? "cursor-pointer hover:text-text-primary transition-colors" : ""}`}
+                      onClick={(e) => {
+                        if (person.phones && (onPhoneClick || onPhoneEdit)) {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setOpenDropdown({
+                            personId: person.id,
+                            position: {
+                              x: rect.left,
+                              y: rect.bottom + 4,
+                            },
+                          });
+                        }
+                      }}
+                    >
                       {person.phones || <span className="text-text-muted">Phones</span>}
                     </td>
                   );
@@ -196,6 +219,24 @@ export function PeopleTable({
           </tr>
         </tbody>
       </table>
+      {openDropdown && (() => {
+        const person = people.find((p) => p.id === openDropdown.personId);
+        if (!person || !person.phones) return null;
+        return (
+          <PhoneNumberDropdown
+            phoneNumber={person.phones}
+            person={person}
+            position={openDropdown.position}
+            onClose={() => setOpenDropdown(null)}
+            onEdit={(p) => {
+              onPhoneEdit?.(p);
+            }}
+            onCall={(phoneNumber, p) => {
+              onPhoneClick?.(phoneNumber, p);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

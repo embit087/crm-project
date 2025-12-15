@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { XIcon, MailIcon, PhoneIcon, MapPinIcon, BriefcaseIcon, LinkedinIcon, ClockIcon, BuildingIcon, HomeIcon, CheckSquareIcon, FileTextIcon, FileIcon } from "@/components/icons";
 import { SidebarField } from "@/components/ui/SidebarField";
 import { TabButton } from "@/components/ui/TabButton";
@@ -11,11 +11,33 @@ interface PersonSidebarProps {
   person: Person;
   onClose: () => void;
   onFieldUpdate: (personId: string, field: keyof Person, value: string) => void;
+  focusField?: keyof Person;
+  onFocusComplete?: () => void;
 }
 
-export function PersonSidebar({ person, onClose, onFieldUpdate }: PersonSidebarProps) {
+export function PersonSidebar({ person, onClose, onFieldUpdate, focusField, onFocusComplete }: PersonSidebarProps) {
   const [activeTab, setActiveTab] = useState<PersonTab>("home");
   const { sidebarWidth, handleResizeStart } = useSidebarResize(400);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus phone field when focusField is "phones"
+  useEffect(() => {
+    if (focusField === "phones" && phoneInputRef.current && activeTab === "home") {
+      // Small delay to ensure the sidebar is fully rendered
+      const timeoutId = setTimeout(() => {
+        const input = phoneInputRef.current;
+        if (input) {
+          input.focus();
+          // Set cursor to end of input instead of selecting all text
+          const length = input.value.length;
+          input.setSelectionRange(length, length);
+          // Clear the focus field after focusing
+          onFocusComplete?.();
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [focusField, activeTab, onFocusComplete]);
 
   const tabs = [
     { id: "home" as const, label: "Home", icon: <HomeIcon /> },
@@ -78,6 +100,7 @@ export function PersonSidebar({ person, onClose, onFieldUpdate }: PersonSidebarP
             </SidebarField>
             <SidebarField icon={<PhoneIcon />} label="Phones">
               <input
+                ref={phoneInputRef}
                 type="text"
                 className="sidebar-field-input"
                 value={person.phones}

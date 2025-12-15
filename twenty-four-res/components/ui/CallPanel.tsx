@@ -140,6 +140,7 @@ interface CallPanelProps {
   onClose: () => void;
   contacts: Person[];
   onSelectContact?: (contact: Person) => void;
+  initialPhoneNumber?: string;
 }
 
 interface CallNote {
@@ -214,7 +215,7 @@ const mockCallHistory: CallHistoryItem[] = [
   },
 ];
 
-export function CallPanel({ isOpen, onClose, contacts }: CallPanelProps) {
+export function CallPanel({ isOpen, onClose, contacts, initialPhoneNumber }: CallPanelProps) {
   const [activeTab, setActiveTab] = useState<CallTab>("dialpad");
   const [dialNumber, setDialNumber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -523,6 +524,14 @@ export function CallPanel({ isOpen, onClose, contacts }: CallPanelProps) {
       }
     };
   }, [callState]);
+
+  // Set initial phone number when panel opens
+  useEffect(() => {
+    if (isOpen && initialPhoneNumber && callState === "idle") {
+      setDialNumber(initialPhoneNumber);
+      setActiveTab("dialpad");
+    }
+  }, [isOpen, initialPhoneNumber, callState]);
 
   // Reset state when panel closes
   useEffect(() => {

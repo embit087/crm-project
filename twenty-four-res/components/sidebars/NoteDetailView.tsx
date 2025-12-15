@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileTextIcon, ClockIcon, UsersIcon, HomeIcon, FileIcon } from "@/components/icons";
+import { FileTextIcon, ClockIcon, UsersIcon, HomeIcon, FileIcon, NotesIcon } from "@/components/icons";
 import { PropertyRow } from "@/components/ui/SidebarField";
 import { TabButton } from "@/components/ui/TabButton";
 import { CreatedByAvatar } from "@/components/ui/Avatar";
@@ -27,7 +27,9 @@ export function NoteDetailView({ note, onTitleChange, onContentChange }: NoteDet
       {/* Left panel - Properties */}
       <div className="w-[400px] border-r border-border p-4 overflow-y-auto bg-sidebar-bg/30">
         <div className="text-center mb-6">
-          <div className="avatar-large mx-auto mb-3">📝</div>
+          <div className="avatar-large mx-auto mb-3">
+            <NotesIcon />
+          </div>
           <input
             type="text"
             value={note.title}

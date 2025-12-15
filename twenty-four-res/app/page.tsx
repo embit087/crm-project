@@ -31,10 +31,12 @@ export default function Home() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [favoriteNotes, setFavoriteNotes] = useState<Set<string>>(new Set());
+  const [personFocusField, setPersonFocusField] = useState<keyof Person | undefined>(undefined);
   
   // UI state
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [showCallPanel, setShowCallPanel] = useState(false);
+  const [callPanelPhoneNumber, setCallPanelPhoneNumber] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Row selection handlers
@@ -181,6 +183,18 @@ export default function Home() {
     }
   }, [activeNav, addNewNote]);
 
+  // Phone click handler - opens call panel with phone number
+  const handlePhoneClick = useCallback((phoneNumber: string, person: Person) => {
+    setCallPanelPhoneNumber(phoneNumber);
+    setShowCallPanel(true);
+  }, []);
+
+  // Phone edit handler - opens person sidebar for editing
+  const handlePhoneEdit = useCallback((person: Person) => {
+    setSelectedPerson(person);
+    setPersonFocusField("phones");
+  }, []);
+
   // Search results computation
   const searchResults = searchQuery.trim()
     ? {
@@ -225,8 +239,18 @@ export default function Home() {
             selectedPerson={selectedPerson}
             onToggleRow={toggleRow}
             onToggleAll={toggleAllPeople}
-            onSelectPerson={setSelectedPerson}
+            onSelectPerson={(person) => {
+              setSelectedPerson(person);
+              // Clear focus field when manually selecting a person
+              if (person) {
+                setPersonFocusField(undefined);
+              }
+            }}
             onFieldUpdate={updatePersonField}
+            onPhoneClick={handlePhoneClick}
+            onPhoneEdit={handlePhoneEdit}
+            personFocusField={personFocusField}
+            onFocusFieldCleared={() => setPersonFocusField(undefined)}
           />
         );
       case "companies":
@@ -271,9 +295,6 @@ export default function Home() {
             onViewChange={handleTasksViewChange}
           />
         );
-      case "opportunities":
-      case "workflows":
-        return <PlaceholderView title={activeNav} />;
       default:
         return null;
     }
@@ -318,11 +339,18 @@ export default function Home() {
         onNavigate={handleNavChange}
       />
 
-      <CallFab onClick={() => setShowCallPanel(true)} />
+      <CallFab onClick={() => {
+        setCallPanelPhoneNumber(undefined);
+        setShowCallPanel(true);
+      }} />
       <CallPanel
         isOpen={showCallPanel}
-        onClose={() => setShowCallPanel(false)}
+        onClose={() => {
+          setShowCallPanel(false);
+          setCallPanelPhoneNumber(undefined);
+        }}
         contacts={people}
+        initialPhoneNumber={callPanelPhoneNumber}
       />
     </div>
   );

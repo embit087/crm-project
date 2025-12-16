@@ -81,6 +81,6 @@ export type PersonTab = "home" | "tasks" | "notes" | "files";
 export type CompanyTab = "home" | "tasks" | "notes" | "files";
 export type NoteTab = "note" | "timeline" | "files";
 export type TasksView = "all" | "by_status" | "assigned_to_me";
-export type ActiveNav = "people" | "companies" | "tasks" | "notes";
+export type ActiveNav = "people" | "companies" | "tasks" | "notes" | "analytics";
 
 

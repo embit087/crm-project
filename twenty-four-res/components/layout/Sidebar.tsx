@@ -15,6 +15,7 @@ import {
   KanbanIcon,
   UserCircleIcon,
   CRMIcon,
+  AnalyticsIcon,
 } from "@/components/icons";
 import { Tooltip } from "@/components/ui/Tooltip";
 import type { ActiveNav, TasksView } from "@/types";
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
     ],
   },
   { id: "notes", label: "Notes", icon: <FileTextIcon /> },
+  { id: "analytics", label: "Analytics", icon: <AnalyticsIcon /> },
 ];
 
 interface SidebarProps {

@@ -9,7 +9,7 @@ import { PeopleView } from "@/components/views/PeopleView";
 import { CompaniesView } from "@/components/views/CompaniesView";
 import { NotesView } from "@/components/views/NotesView";
 import { TasksView } from "@/components/views/TasksView";
-import { PlaceholderView } from "@/components/views/PlaceholderView";
+import { AnalyticsView } from "@/components/views/AnalyticsView";
 import { useKeyboardShortcuts } from "@/hooks";
 import { initialCompanies, initialPeople, initialNotes, initialTasks } from "@/data/seed";
 import type { Company, Person, Note, Task, ActiveNav, TasksView as TasksViewType } from "@/types";
@@ -310,6 +310,8 @@ export default function Home() {
             onFieldUpdate={updateTaskField}
           />
         );
+      case "analytics":
+        return <AnalyticsView />;
       default:
         return null;
     }

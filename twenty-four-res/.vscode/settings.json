@@ -1,0 +1,6 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "css.validate": true,
+  "css.customData": []
+}
+

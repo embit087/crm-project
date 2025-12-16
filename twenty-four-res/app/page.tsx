@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { SearchPanel } from "@/components/overlays/SearchPanel";
 import { CallFab, CallPanel } from "@/components/ui";
+import { CreateWorkspaceModal, CreateProfileModal, InviteTeamModal } from "@/components/auth";
 import { PeopleView } from "@/components/views/PeopleView";
 import { CompaniesView } from "@/components/views/CompaniesView";
 import { NotesView } from "@/components/views/NotesView";
@@ -39,6 +40,15 @@ export default function Home() {
   const [showCallPanel, setShowCallPanel] = useState(false);
   const [callPanelPhoneNumber, setCallPanelPhoneNumber] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Onboarding state
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [userProfile, setUserProfile] = useState<{ firstName: string; lastName: string } | null>(null);
 
   // Row selection handlers
   const toggleRow = useCallback((id: string) => {
@@ -164,7 +174,7 @@ export default function Home() {
   }, [activeNav, selectedRows, selectedPerson, selectedCompany, selectedNote]);
 
   // Task update handler
-  const updateTaskField = useCallback((taskId: string, field: keyof Task, value: any) => {
+  const updateTaskField = useCallback((taskId: string, field: keyof Task, value: unknown) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, [field]: value } : t))
     );
@@ -196,6 +206,7 @@ export default function Home() {
   }, [activeNav, addNewNote]);
 
   // Phone click handler - opens call panel with phone number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePhoneClick = useCallback((phoneNumber: string, person: Person) => {
     setCallPanelPhoneNumber(phoneNumber);
     setShowCallPanel(true);
@@ -228,6 +239,36 @@ export default function Home() {
         ),
       }
     : { people: [], companies: [], notes: [] };
+
+  // Workspace creation handler
+  const handleWorkspaceCreate = useCallback((name: string, logo?: File) => {
+    setWorkspaceName(name);
+    setShowWorkspaceModal(false);
+    setShowProfileModal(true);
+    // Here you would typically save the workspace to your backend
+    console.log("Workspace created:", name, logo);
+  }, []);
+
+  // Profile creation handler
+  const handleProfileCreate = useCallback((firstName: string, lastName: string, avatar?: File) => {
+    setUserProfile({ firstName, lastName });
+    setShowProfileModal(false);
+    setShowInviteModal(true);
+    // Here you would typically save the profile to your backend
+    console.log("Profile created:", firstName, lastName, avatar);
+  }, []);
+
+  // Invite team handler
+  const handleInviteComplete = useCallback((emails: string[]) => {
+    setShowInviteModal(false);
+    // Here you would typically send invites to the backend
+    console.log("Team invited:", emails);
+  }, []);
+
+  const handleInviteSkip = useCallback(() => {
+    setShowInviteModal(false);
+    console.log("Invite skipped");
+  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -368,6 +409,21 @@ export default function Home() {
         }}
         contacts={people}
         initialPhoneNumber={callPanelPhoneNumber}
+      />
+
+      {/* Onboarding Modals */}
+      <CreateWorkspaceModal
+        isOpen={showWorkspaceModal}
+        onComplete={handleWorkspaceCreate}
+      />
+      <CreateProfileModal
+        isOpen={showProfileModal}
+        onComplete={handleProfileCreate}
+      />
+      <InviteTeamModal
+        isOpen={showInviteModal}
+        onComplete={handleInviteComplete}
+        onSkip={handleInviteSkip}
       />
     </div>
   );

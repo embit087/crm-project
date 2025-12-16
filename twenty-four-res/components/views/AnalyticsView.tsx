@@ -24,7 +24,7 @@ export function AnalyticsView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <Toolbar title="Analytics" count={0} />
+      <Toolbar title="Call Analytics" count={0} />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Key Numbers */}

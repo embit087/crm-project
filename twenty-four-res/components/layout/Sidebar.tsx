@@ -43,7 +43,7 @@ const navItems: NavItem[] = [
     ],
   },
   { id: "notes", label: "Notes", icon: <FileTextIcon /> },
-  { id: "analytics", label: "Analytics", icon: <AnalyticsIcon /> },
+  { id: "analytics", label: "Call Analytics", icon: <AnalyticsIcon /> },
 ];
 
 interface SidebarProps {
